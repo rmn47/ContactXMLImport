@@ -12,3 +12,5 @@ php artisan key:generate
 Run Migrations-
 
 Start the Development Server-
+
+I have included the XML file So you can test the application.
