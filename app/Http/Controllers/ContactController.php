@@ -68,18 +68,15 @@ class ContactController extends Controller
         try {
             $xmlContent = file_get_contents($request->file('xml_file')->path());
             $xml = new SimpleXMLElement($xmlContent);
-            
             $imported = 0;
+
             foreach ($xml->contact as $contactData) {
-                // Convert XML element to array
                 $data = [];
                 foreach ($contactData as $key => $value) {
                     $data[strtolower((string)$key)] = trim((string)$value);
                 }
 
-                // Handle different possible formats
                 $contactInfo = $this->parseContactData($data);
-                
                 if ($contactInfo) {
                     Contact::create($contactInfo);
                     $imported++;
@@ -98,47 +95,35 @@ class ContactController extends Controller
 
     private function parseContactData($data)
     {
-        // Initialize contact info
         $contactInfo = [
             'first_name' => '',
             'last_name' => '',
             'phone' => ''
         ];
 
-        // Case 1: first_name, last_name, phone format
         if (isset($data['first_name']) && isset($data['last_name']) && isset($data['phone'])) {
             $contactInfo['first_name'] = $data['first_name'];
             $contactInfo['last_name'] = $data['last_name'];
             $contactInfo['phone'] = $data['phone'];
-        }
-        // Case 2: firstname, lastname, phone format
-        elseif (isset($data['firstname']) && isset($data['lastname']) && isset($data['phone'])) {
+        } elseif (isset($data['firstname']) && isset($data['lastname']) && isset($data['phone'])) {
             $contactInfo['first_name'] = $data['firstname'];
             $contactInfo['last_name'] = $data['lastname'];
             $contactInfo['phone'] = $data['phone'];
-        }
-        // Case 3: name and contact/phone format
-        elseif (isset($data['name']) && (isset($data['contact']) || isset($data['phone']))) {
-            // Split name into first and last name
+        } elseif (isset($data['name']) && (isset($data['contact']) || isset($data['phone']))) {
             $nameParts = explode(' ', $data['name'], 2);
             $contactInfo['first_name'] = $nameParts[0];
-            $contactInfo['last_name'] = $nameParts[1] ?? ''; // Use empty string if no last name
+            $contactInfo['last_name'] = $nameParts[1] ?? '';
             $contactInfo['phone'] = $data['contact'] ?? $data['phone'];
-        }
-        // Case 4: name and number format
-        elseif (isset($data['name']) && isset($data['number'])) {
+        } elseif (isset($data['name']) && isset($data['number'])) {
             $nameParts = explode(' ', $data['name'], 2);
             $contactInfo['first_name'] = $nameParts[0];
             $contactInfo['last_name'] = $nameParts[1] ?? '';
             $contactInfo['phone'] = $data['number'];
-        }
-        // Case 5: single name field and phone
-        elseif (isset($data['name'])) {
+        } elseif (isset($data['name'])) {
             $nameParts = explode(' ', $data['name'], 2);
             $contactInfo['first_name'] = $nameParts[0];
             $contactInfo['last_name'] = $nameParts[1] ?? '';
-            
-            // Look for phone in various possible fields
+
             foreach (['phone', 'contact', 'number', 'tel', 'telephone'] as $phoneField) {
                 if (isset($data[$phoneField])) {
                     $contactInfo['phone'] = $data[$phoneField];
@@ -147,9 +132,7 @@ class ContactController extends Controller
             }
         }
 
-        // Validate that we have at least a first name and phone number
         if (!empty($contactInfo['first_name']) && !empty($contactInfo['phone'])) {
-            // Clean phone number
             $contactInfo['phone'] = preg_replace('/[^0-9+\s]/', '', $contactInfo['phone']);
             return $contactInfo;
         }
